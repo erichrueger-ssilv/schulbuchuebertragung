@@ -1234,6 +1234,7 @@
                                         min="0"
                                         max="2"
                                         step="0.1"
+                                        style="width: 80px"
                                     />
                                 </div>
                                 <div class="control-group horizontal">
@@ -1247,6 +1248,31 @@
                                         min="0"
                                         max="2"
                                         step="0.1"
+                                        style="width: 80px"
+                                    />
+                                </div>
+                                <div class="control-group horizontal">
+                                    <label for="top-p">Top P</label>
+                                    <input
+                                        type="number"
+                                        id="top-p"
+                                        value="1.0"
+                                        min="0"
+                                        max="1"
+                                        step="0.05"
+                                        style="width: 80px"
+                                    />
+                                </div>
+                                <div class="control-group horizontal">
+                                    <label for="top-k">Top K</label>
+                                    <input
+                                        type="number"
+                                        id="top-k"
+                                        value="0"
+                                        min="0"
+                                        max="100"
+                                        step="1"
+                                        style="width: 80px"
                                     />
                                 </div>
                             </div>
@@ -1333,6 +1359,7 @@ Beschreibung: …  / Bildtext: …<br/>
                                             id="start-pdf-page"
                                             value="1"
                                             min="1"
+                                            style="width: 80px"
                                         />
                                     </div>
                                     <div class="control-group horizontal">
@@ -1344,6 +1371,7 @@ Beschreibung: …  / Bildtext: …<br/>
                                             id="start-page-number"
                                             value="1"
                                             min="1"
+                                            style="width: 80px"
                                         />
                                     </div>
                                 </div>
@@ -1355,6 +1383,7 @@ Beschreibung: …  / Bildtext: …<br/>
                                         value="100"
                                         min="0"
                                         step="100"
+                                        style="width: 80px"
                                     />
                                 </div>
                                 <div class="control-group horizontal">
@@ -1365,6 +1394,7 @@ Beschreibung: …  / Bildtext: …<br/>
                                         value="1"
                                         min="0"
                                         step="1"
+                                        style="width: 80px"
                                     />
                                 </div>
                             </div>
@@ -2194,6 +2224,8 @@ Willkommen! Bitte Dateien auswählen oder ein Foto machen und auf "Starten" klic
             const temperatureInput = document.getElementById("temperature");
             const repeatPenaltyInput =
                 document.getElementById("repeat-penalty");
+            const topPInput = document.getElementById("top-p");
+            const topKInput = document.getElementById("top-k");
 
             // Manual Prompt
             const manualPromptInput = document.getElementById("manual-prompt");
@@ -3068,6 +3100,8 @@ Willkommen! Bitte Dateien auswählen oder ein Foto machen und auf "Starten" klic
                 "api-key",
                 "temperature",
                 "repeat-penalty",
+                "top-p",
+                "top-k",
                 "prompt",
                 "dpi",
                 "page-range",
@@ -3533,6 +3567,8 @@ Willkommen! Bitte Dateien auswählen oder ein Foto machen und auf "Starten" klic
                 const prompt = promptOverride || promptInput.value;
                 const temperature = parseFloat(temperatureInput.value);
                 const repeatPenalty = parseFloat(repeatPenaltyInput.value);
+                const topP = parseFloat(topPInput.value);
+                const topK = parseInt(topKInput.value, 10);
                 const delay = parseInt(delayInput.value, 10);
 
                 if (!model) return "[FEHLER: KEIN MODELL]";
@@ -3553,6 +3589,8 @@ Willkommen! Bitte Dateien auswählen oder ein Foto machen und auf "Starten" klic
                         options: {
                             temperature: temperature,
                             repeat_penalty: repeatPenalty,
+                            top_p: topP,
+                            top_k: topK,
                         },
                     };
                 } else {
@@ -3573,7 +3611,13 @@ Willkommen! Bitte Dateien auswählen oder ein Foto machen und auf "Starten" klic
                         ],
                         temperature: temperature,
                         presence_penalty: repeatPenalty,
+                        top_p: topP,
                     };
+                    // top_k is not standard in OpenAI API, but some providers might support it.
+                    // However, standard OpenAI doesn't. We'll include it if it's not 0 just in case.
+                    if (topK > 0) {
+                        payload.top_k = topK;
+                    }
                 }
 
                 for (let attempt = 0; attempt <= retries; attempt++) {
