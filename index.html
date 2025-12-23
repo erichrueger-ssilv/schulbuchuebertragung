@@ -2419,13 +2419,16 @@ Willkommen! Bitte Dateien auswählen oder ein Foto machen und auf "Starten" klic
         cameraSnapBtn.addEventListener("click", async () => {
             if (!cameraStreamObj) return;
 
-            // 1. Bild vom Canvas holen (wie bisher)
+            // iOS TTS Unlock: Muss direkt im Click-Handler erfolgen
+            unlockTTS();
+
+            // 1. Bild vom Canvas holen
             const video = cameraStream;
             const canvas = cameraCanvas;
             let w = video.videoWidth;
             let h = video.videoHeight;
 
-            // Resizing Logik (wie bisher)
+            // Resizing Logik
             if (!cameraResFull.checked) {
                 const maxPixels =
                     parseInt(cameraMaxPixels.value) || 1000000;
@@ -2441,8 +2444,6 @@ Willkommen! Bitte Dateien auswählen oder ein Foto machen und auf "Starten" klic
             const ctx = canvas.getContext("2d");
             ctx.drawImage(video, 0, 0, w, h);
             const base64 = canvas.toDataURL("image/jpeg", 0.85);
-
-            // --- ENTSCHEIDUNG: VISION MODE ODER NORMAL ---
 
             if (visionModeToggle.checked) {
                 // VISION MODE LOGIK
@@ -2518,9 +2519,20 @@ Willkommen! Bitte Dateien auswählen oder ein Foto machen und auf "Starten" klic
             logMessage("Foto-Stapel verworfen.");
         });
 
+        function unlockTTS() {
+            if (!("speechSynthesis" in window)) return;
+            const u = new SpeechSynthesisUtterance(" ");
+            u.volume = 0;
+            window.speechSynthesis.speak(u);
+        }
+
         function speakText(text) {
             if (!("speechSynthesis" in window)) return;
             window.speechSynthesis.cancel(); // Vorheriges abbrechen
+
+            if (!text || !text.trim()) return;
+
+            const utterance = new SpeechSynthesisUtterance(text);
 
             // Sprache erkennen (einfach)
             const isEnglish =
@@ -2528,15 +2540,16 @@ Willkommen! Bitte Dateien auswählen oder ein Foto machen und auf "Starten" klic
                 (text.match(/\b(the|and|is)\b/gi) || []).length >
                 (text.match(/\b(der|die|das)\b/gi) || []).length;
 
-            const utterance = new SpeechSynthesisUtterance(text);
             utterance.lang = isEnglish ? "en-US" : "de-DE";
 
-            // Stimme auswählen (optional, falls Stimmen geladen sind)
+            // Kurze Verzögerung für Stimmen-Laden (besonders mobile)
             const voices = window.speechSynthesis.getVoices();
-            const matchingVoice = voices.find((v) =>
-                v.lang.startsWith(utterance.lang),
-            );
-            if (matchingVoice) utterance.voice = matchingVoice;
+            if (voices.length > 0) {
+                const matchingVoice = voices.find((v) =>
+                    v.lang.startsWith(utterance.lang),
+                );
+                if (matchingVoice) utterance.voice = matchingVoice;
+            }
 
             window.speechSynthesis.speak(utterance);
         }
@@ -3908,6 +3921,9 @@ Willkommen! Bitte Dateien auswählen oder ein Foto machen und auf "Starten" klic
             async function handleVisionChat() {
                 const text = visionUserInput.value.trim();
                 if (!text || !currentVisionBase64) return;
+
+                // iOS Unlock
+                unlockTTS();
 
                 // UI Updates
                 const oldContent = visionResponseArea.textContent;
