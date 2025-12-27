@@ -965,6 +965,7 @@ input:focus-visible+.slider {
 
     .controls {
         overflow-y: visible;
+        max-height: none;
     }
 
     .preview-area {
