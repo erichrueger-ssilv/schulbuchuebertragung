@@ -279,10 +279,10 @@ async function analyzeToc() {
             tocStatus.textContent = `VLM analysiert Seite ${pageNum}...`;
 
             const base64 = await getBase64FromPdfPage(pdfDoc, pageNum, dpi);
-            const prompt = "Extrahiere das Inhaltsverzeichnis dieser Seite. Gib das Ergebnis ausschließlich als JSON-Array zurück. " +
-                "Jedes Element muss 'titel' (String), 'ebene' (Zahl, 1 für h1, 2 für h2 etc.) und 'buchseite' (Zahl der gedruckten Seitenzahl im Buch) enthalten. " +
-                "Beispiel: [{\"titel\": \"Einleitung\", \"ebene\": 1, \"buchseite\": 10}]. " +
-                "Antworte NUR mit dem JSON-Array, kein Markdown, kein Text drumherum.";
+            const prompt = "Extract the table of contents from this page. Return the result exclusively as a JSON array. " +
+                "Each element must contain 'titel' (String), 'ebene' (Zahl, 1 für h1, 2 für h2 etc.) and 'buchseite' (number of printed pages in the book). " +
+                "Example: [{\"titel\": \"Einleitung\", \"ebene\": 1, \"buchseite\": 10}]. " +
+                "Reply ONLY with the JSON array, no Markdown, no surrounding text.";
 
             const result = await sendToLLM(base64, 1, prompt);
 
