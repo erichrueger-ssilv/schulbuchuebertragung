@@ -263,6 +263,7 @@ async function processPage(
     if (globalToc && globalToc.length > 0) {
         const pageHeadings = globalToc.filter(h => h.seite === pageNum && !h.processed);
         if (pageHeadings.length > 0) {
+            logMessage(`ToC-Kontext für Seite ${pageNum}: ${pageHeadings.map(h => h.titel).join(", ")}.`);
             extraPrompt = "\n\nNOTE ON STRUCTURE (IF APPLICABLE):\n" +
                 "If the following chapters/headings are PRINTED on this page, please format them using the specified Markdown hierarchy. " +
                 "If one of these headings is NOT visible in the image, do NOT add it (do not hallucinate it). " +
@@ -306,6 +307,7 @@ async function processPage(
             const exactHeaderRegex = new RegExp(`(^|\\n)${headerPrefix}\\s*${escapedTitle}\\s*(\\n|$)`, 'gi');
             if (exactHeaderRegex.test(formattedMarkdown)) {
                 h.processed = true;
+                logMessage(`ToC-Check: Überschrift "${h.titel}" wurde korrekt erkannt.`);
                 return;
             }
 
