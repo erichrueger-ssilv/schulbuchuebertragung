@@ -173,8 +173,12 @@
                                         title="Seitenzahl-Offset (Buch vs PDF) Wie viele Seiten gibt es in der PDF, die nicht zur Seitennummerierung des Buches zählen?"
                                         style="width: 60px;" aria-label="Seitenzahl Offset">
                                 </div>
-                                <button id="analyze-toc-btn" style="width: 100%; font-size: 0.9em;">ToC
-                                    analysieren</button>
+                                <div style="display: flex; gap: 5px; margin-top: 5px;">
+                                    <button id="analyze-toc-btn" style="flex: 2; font-size: 0.9em;">ToC
+                                        analysieren</button>
+                                    <button id="edit-toc-btn" style="flex: 1; font-size: 0.9em;"
+                                        title="Inhaltsverzeichnis manuell bearbeiten">Bearbeiten</button>
+                                </div>
                                 <div id="toc-status"
                                     style="font-size: 0.8em; margin-top: 5px; color: var(--text-color); opacity: 0.8;">
                                 </div>
@@ -582,6 +586,62 @@ Beschreibung: …  / Bildtext: …<br/>
                     </div>
                 </div>
             </details>
+        </div>
+    </div>
+
+    <!-- MODAL: TOC EDITOR -->
+    <div id="toc-editor-modal" class="modal-overlay" style="display:none; align-items: flex-start; padding-top: 20px;">
+        <div class="modal-content large" style="max-height: 90vh; display: flex; flex-direction: column; width: 800px;">
+            <div class="header-row" style="margin-bottom: 5px; flex-shrink: 0;">
+                <h3>Inhaltsverzeichnis bearbeiten</h3>
+                <button id="toc-editor-close" class="header-btn"
+                    style="background:transparent; border:none; font-size:1.5em;" aria-label="Schließen">✖</button>
+            </div>
+
+            <div id="toc-bulk-actions"
+                style="display: flex; gap: 10px; margin-bottom: 10px; padding: 5px; background: rgba(0,0,0,0.1); border-radius: 4px; align-items: center;">
+                <span style="font-size: 0.9em; font-weight: bold;">Auswahl:</span>
+                <button id="toc-bulk-level-up-btn" class="header-btn" style="padding: 4px 8px; font-size: 0.85em;"
+                    title="Ebene verringern (H-Zahl -1)">Ebene ↑</button>
+                <button id="toc-bulk-level-down-btn" class="header-btn" style="padding: 4px 8px; font-size: 0.85em;"
+                    title="Ebene erhöhen (H-Zahl +1)">Ebene ↓</button>
+                <div style="border-left: 1px solid var(--border-color); height: 20px; margin: 0 5px;"></div>
+                <button id="toc-export-btn" class="header-btn" style="padding: 4px 8px; font-size: 0.85em;"
+                    title="ToC als Markdown exportieren">Export</button>
+                <button id="toc-import-btn" class="header-btn" style="padding: 4px 8px; font-size: 0.85em;"
+                    title="ToC aus Markdown importieren">Import</button>
+                <input type="file" id="toc-import-file" accept=".md" style="display: none;">
+                <span id="toc-selection-count" style="font-size: 0.8em; opacity: 0.7; margin-left: auto;">0
+                    ausgewählt</span>
+            </div>
+
+            <div style="flex: 1; overflow-y: auto; margin-bottom: 10px;">
+                <table class="toc-editor-table">
+                    <thead>
+                        <tr>
+                            <th style="width: 20px;"></th>
+                            <th style="width: 30px;"><input type="checkbox" id="toc-select-all" title="Alle auswählen">
+                            </th>
+                            <th style="width: 75px;">Ebene</th>
+                            <th>Titel</th>
+                            <th style="width: 65px;">Buch</th>
+                            <th style="width: 65px;">PDF</th>
+                            <th style="width: 90px;">Aktionen</th>
+                        </tr>
+                    </thead>
+                    <tbody id="toc-editor-body">
+                        <!-- Rows injected by JS -->
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="modal-buttons"
+                style="flex-shrink: 0; padding-top: 10px; border-top: 1px solid var(--border-color); display: flex; gap: 10px; justify-content: flex-end;">
+                <div style="display: flex; gap: 10px;">
+                    <button id="toc-cancel-btn" class="btn-cancel">Abbrechen</button>
+                    <button id="toc-save-btn">Speichern</button>
+                </div>
+            </div>
         </div>
     </div>
 

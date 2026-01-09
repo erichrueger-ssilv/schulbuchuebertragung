@@ -577,3 +577,282 @@ function initNavigationListeners() {
         });
     }
 }
+
+// --- TOC EDITOR ---
+let selectedTocIndices = new Set();
+
+function initTocEditor() {
+    const editTocBtn = document.getElementById("edit-toc-btn");
+    const tocEditorModal = document.getElementById("toc-editor-modal");
+    const tocEditorClose = document.getElementById("toc-editor-close");
+    const tocCancelBtn = document.getElementById("toc-cancel-btn");
+    const tocSaveBtn = document.getElementById("toc-save-btn");
+    const tocSelectAll = document.getElementById("toc-select-all");
+    const bulkLevelUpBtn = document.getElementById("toc-bulk-level-up-btn");
+    const bulkLevelDownBtn = document.getElementById("toc-bulk-level-down-btn");
+    const exportBtn = document.getElementById("toc-export-btn");
+    const importBtn = document.getElementById("toc-import-btn");
+    const importFile = document.getElementById("toc-import-file");
+
+    if (!editTocBtn) return;
+
+    editTocBtn.addEventListener("click", () => {
+        selectedTocIndices.clear();
+        if (tocSelectAll) tocSelectAll.checked = false;
+        renderTocEditorBody();
+        tocEditorModal.style.display = "flex";
+    });
+
+    tocEditorClose.addEventListener("click", () => {
+        tocEditorModal.style.display = "none";
+    });
+
+    tocCancelBtn.addEventListener("click", () => {
+        tocEditorModal.style.display = "none";
+    });
+
+    tocSaveBtn.addEventListener("click", () => {
+        saveTocEdits();
+        tocEditorModal.style.display = "none";
+        logMessage(`ToC manuell gespeichert: ${globalToc.length} Einträge.`);
+    });
+
+    if (tocSelectAll) {
+        tocSelectAll.addEventListener("change", () => {
+            if (tocSelectAll.checked) {
+                globalToc.forEach((_, i) => selectedTocIndices.add(i));
+            } else {
+                selectedTocIndices.clear();
+            }
+            renderTocEditorBody();
+        });
+    }
+
+    if (bulkLevelUpBtn) {
+        bulkLevelUpBtn.addEventListener("click", () => bulkChangeTocLevel(-1));
+    }
+    if (bulkLevelDownBtn) {
+        bulkLevelDownBtn.addEventListener("click", () => bulkChangeTocLevel(1));
+    }
+
+    if (exportBtn) {
+        exportBtn.addEventListener("click", exportTocToMarkdown);
+    }
+
+    if (importBtn && importFile) {
+        importBtn.addEventListener("click", () => importFile.click());
+        importFile.addEventListener("change", (e) => {
+            if (e.target.files.length > 0) {
+                importTocFromMarkdown(e.target.files[0]);
+                importFile.value = ""; // Reset for next time
+            }
+        });
+    }
+}
+
+function renderTocEditorBody() {
+    const body = document.getElementById("toc-editor-body");
+    const selectionCountEl = document.getElementById("toc-selection-count");
+    body.innerHTML = "";
+
+    globalToc.forEach((item, index) => {
+        const isSelected = selectedTocIndices.has(index);
+        const tr = document.createElement("tr");
+        tr.setAttribute("draggable", "true");
+        if (isSelected) tr.classList.add("selected");
+
+        tr.innerHTML = `
+            <td class="toc-drag-handle" title="Ziehen zum Verschieben">☰</td>
+            <td style="text-align: center;">
+                <input type="checkbox" ${isSelected ? 'checked' : ''} onchange="toggleTocSelection(${index})">
+            </td>
+            <td>
+                <select onchange="updateTocItem(${index}, 'ebene', this.value)">
+                    <option value="1" ${item.ebene === 1 ? 'selected' : ''}>H1</option>
+                    <option value="2" ${item.ebene === 2 ? 'selected' : ''}>H2</option>
+                    <option value="3" ${item.ebene === 3 ? 'selected' : ''}>H3</option>
+                    <option value="4" ${item.ebene === 4 ? 'selected' : ''}>H4</option>
+                    <option value="5" ${item.ebene === 5 ? 'selected' : ''}>H5</option>
+                    <option value="6" ${item.ebene === 6 ? 'selected' : ''}>H6</option>
+                </select>
+            </td>
+            <td><input type="text" value="${item.titel}" oninput="updateTocItem(${index}, 'titel', this.value)"></td>
+            <td><input type="number" value="${item.buchseite || 0}" oninput="updateTocItem(${index}, 'buchseite', this.value)"></td>
+            <td><input type="number" value="${item.seite || 0}" oninput="updateTocItem(${index}, 'seite', this.value)"></td>
+            <td class="toc-actions-cell">
+                <div class="toc-actions-container">
+                    <button class="toc-action-btn" onclick="insertTocRow(${index})" title="Zeile darüber einfügen">➕</button>
+                    <button class="toc-action-btn" onclick="moveTocRow(${index}, -1)" title="Nach oben" ${index === 0 ? 'disabled' : ''}>↑</button>
+                    <button class="toc-action-btn" onclick="moveTocRow(${index}, 1)" title="Nach unten" ${index === globalToc.length - 1 ? 'disabled' : ''}>↓</button>
+                    <button class="toc-delete-btn" onclick="deleteTocRow(${index})" title="Löschen">🗑</button>
+                </div>
+            </td>
+        `;
+
+        // Drag events
+        tr.addEventListener("dragstart", (e) => handleTocDragStart(e, index));
+        tr.addEventListener("dragover", (e) => handleTocDragOver(e, tr));
+        tr.addEventListener("dragleave", () => tr.classList.remove("drag-over"));
+        tr.addEventListener("drop", (e) => handleTocDrop(e, index));
+        tr.addEventListener("dragend", () => tr.classList.remove("dragging"));
+
+        body.appendChild(tr);
+    });
+
+    if (selectionCountEl) selectionCountEl.textContent = `${selectedTocIndices.size} ausgewählt`;
+}
+
+// --- DRAG AND DROP ---
+let draggedTocIndex = null;
+
+function handleTocDragStart(e, index) {
+    draggedTocIndex = index;
+    e.target.classList.add("dragging");
+    e.dataTransfer.effectAllowed = "move";
+}
+
+function handleTocDragOver(e, tr) {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = "move";
+    tr.classList.add("drag-over");
+}
+
+function handleTocDrop(e, targetIndex) {
+    e.preventDefault();
+    if (draggedTocIndex === null || draggedTocIndex === targetIndex) return;
+
+    const item = globalToc.splice(draggedTocIndex, 1)[0];
+    globalToc.splice(targetIndex, 0, item);
+
+    // Clear selection if reordering (indices change anyway)
+    selectedTocIndices.clear();
+    const tocSelectAll = document.getElementById("toc-select-all");
+    if (tocSelectAll) tocSelectAll.checked = false;
+
+    renderTocEditorBody();
+}
+
+function toggleTocSelection(index) {
+    if (selectedTocIndices.has(index)) {
+        selectedTocIndices.delete(index);
+    } else {
+        selectedTocIndices.add(index);
+    }
+
+    // Update "Select All" state
+    const tocSelectAll = document.getElementById("toc-select-all");
+    if (tocSelectAll) {
+        tocSelectAll.checked = selectedTocIndices.size === globalToc.length && globalToc.length > 0;
+    }
+
+    renderTocEditorBody();
+}
+
+function bulkChangeTocLevel(delta) {
+    if (selectedTocIndices.size === 0) return;
+
+    selectedTocIndices.forEach(index => {
+        let newLevel = globalToc[index].ebene + delta;
+        if (newLevel < 1) newLevel = 1;
+        if (newLevel > 6) newLevel = 6;
+        globalToc[index].ebene = newLevel;
+    });
+
+    renderTocEditorBody();
+    logMessage(`Ebenen für ${selectedTocIndices.size} Einträge geändert.`);
+}
+
+function updateTocItem(index, field, value) {
+    if (field === 'ebene' || field === 'buchseite' || field === 'seite') {
+        globalToc[index][field] = parseInt(value) || 0;
+    } else {
+        globalToc[index][field] = value;
+    }
+}
+
+function deleteTocRow(index) {
+    globalToc.splice(index, 1);
+    renderTocEditorBody();
+}
+
+function moveTocRow(index, direction) {
+    const newIndex = index + direction;
+    if (newIndex < 0 || newIndex >= globalToc.length) return;
+    const item = globalToc.splice(index, 1)[0];
+    globalToc.splice(newIndex, 0, item);
+    renderTocEditorBody();
+}
+
+function insertTocRow(index) {
+    const newItem = { titel: "Neue Überschrift", ebene: 1, buchseite: 0, seite: 0, processed: false };
+    globalToc.splice(index, 0, newItem);
+    renderTocEditorBody();
+}
+
+function saveTocEdits() {
+    // globalToc is already updated via updateTocItem (reference)
+    // We just ensure all items have processed = false if newly edited?
+    globalToc.forEach(h => h.processed = false);
+}
+
+// --- EXPORT / IMPORT ---
+function exportTocToMarkdown() {
+    if (globalToc.length === 0) {
+        alert("Inhaltsverzeichnis ist leer.");
+        return;
+    }
+
+    const content = globalToc.map(h => {
+        const prefix = "#".repeat(Math.max(1, h.ebene));
+        return `${prefix} ${h.titel} (S. ${h.buchseite || 0})`;
+    }).join("\n");
+
+    const blob = new Blob([content], { type: "text/markdown" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "inhaltsverzeichnis.md";
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    logMessage("ToC als Markdown exportiert.");
+}
+
+function importTocFromMarkdown(file) {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+        const text = e.target.result;
+        const lines = text.split(/\r?\n/);
+        const newToc = [];
+        const regex = /^(#{1,6})\s+(.+?)(?:\s*\(S\.\s*(\d+)\))?\s*$/;
+
+        lines.forEach(line => {
+            const trimLine = line.trim();
+            if (!trimLine) return;
+
+            const match = trimLine.match(regex);
+            if (match) {
+                const ebene = match[1].length;
+                const titel = match[2].trim();
+                const buchseite = parseInt(match[3]) || 0;
+                newToc.push({
+                    titel,
+                    ebene,
+                    buchseite,
+                    seite: buchseite + (typeof tocOffset !== 'undefined' ? tocOffset : 0),
+                    processed: false
+                });
+            }
+        });
+
+        if (newToc.length > 0) {
+            globalToc = newToc;
+            renderTocEditorBody();
+            logMessage(`ToC importiert: ${newToc.length} Einträge.`);
+        } else {
+            alert("Konnte keine gültigen Einträge in der Datei finden. Format: # Titel (S. 10)");
+        }
+    };
+    reader.readAsText(file);
+}

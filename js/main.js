@@ -131,6 +131,7 @@ function initApp() {
     initSettingsListeners();
     initCameraListeners();
     initNavigationListeners();
+    initTocEditor();
 
     updateApiSettings();
     numberingOptions.style.display = enableNumberingInput.checked
@@ -167,3 +168,39 @@ if (!tryInitApp()) {
         }
     }, 5000);
 }
+
+// --- GLOBAL FILE DRAG-AND-DROP ---
+document.body.addEventListener("dragover", (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    document.body.classList.add("drag-over");
+});
+
+document.body.addEventListener("dragleave", (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    // Only remove if we actually leave the window
+    if (e.relatedTarget === null || e.relatedTarget === document.documentElement) {
+        document.body.classList.remove("drag-over");
+    }
+});
+
+document.body.addEventListener("drop", (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    document.body.classList.remove("drag-over");
+
+    const files = e.dataTransfer.files;
+    if (files && files.length > 0) {
+        const fileInput = document.getElementById("file-input");
+        if (fileInput) {
+            const dt = new DataTransfer();
+            for (let i = 0; i < files.length; i++) {
+                dt.items.add(files[i]);
+            }
+            fileInput.files = dt.files;
+            // Trigger the existing change listener
+            fileInput.dispatchEvent(new Event("change"));
+        }
+    }
+});

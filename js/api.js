@@ -308,6 +308,9 @@ async function analyzeToc() {
         if (globalToc.length > 0) {
             logMessage(`ToC erfolgreich analysiert: ${globalToc.length} Einträge gefunden.`);
             tocStatus.textContent = `${globalToc.length} Einträge geladen.`;
+            // Automatisch den Editor öffnen zur Kontrolle
+            renderTocEditorBody();
+            document.getElementById("toc-editor-modal").style.display = "flex";
         } else {
             throw new Error("Konnte keine gültigen Einträge im Inhaltsverzeichnis finden.");
         }

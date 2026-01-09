@@ -56,6 +56,13 @@ body {
     transition:
         background-color 0.3s,
         color 0.3s;
+    box-sizing: border-box;
+}
+
+*,
+*::before,
+*::after {
+    box-sizing: inherit;
 }
 
 /* --- Layout-Struktur --- */
@@ -1016,4 +1023,132 @@ input:focus-visible+.slider {
     100% {
         opacity: 0.5;
     }
+}
+
+/* --- TOC EDITOR TABLE STYLES --- */
+.toc-editor-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 10px;
+    background: var(--input-bg);
+    color: var(--text-color);
+}
+
+.toc-editor-table th,
+.toc-editor-table td {
+    border: 1px solid var(--border-color);
+    padding: 6px 8px;
+    text-align: left;
+    vertical-align: middle;
+}
+
+.toc-editor-table th {
+    background: var(--secondary-color);
+    font-weight: bold;
+}
+
+.toc-editor-table input {
+    width: 100%;
+    border: none;
+    background: transparent;
+    color: var(--text-color);
+    padding: 4px;
+}
+
+.toc-editor-table input:focus {
+    background: rgba(218, 67, 83, 0.1);
+    outline: 1px solid var(--primary-color);
+}
+
+.toc-editor-table select {
+    width: 100%;
+    border: none;
+    background: transparent;
+    color: var(--text-color);
+    padding: 4px;
+}
+
+.toc-delete-btn {
+    background: transparent;
+    color: var(--error-color);
+    border: none;
+    cursor: pointer;
+    font-size: 1.2em;
+    padding: 0;
+}
+
+.toc-delete-btn:hover {
+    color: #ff4d4d;
+}
+
+.toc-action-btn {
+    background: transparent;
+    color: var(--text-color);
+    border: none;
+    cursor: pointer;
+    font-size: 1.1em;
+    padding: 0;
+    line-height: 1;
+    transition: opacity 0.2s;
+}
+
+.toc-action-btn:hover:not(:disabled) {
+    color: var(--primary-color);
+}
+
+.toc-action-btn:disabled {
+    opacity: 0.2;
+    cursor: not-allowed;
+}
+
+.toc-actions-cell {
+    padding: 0 !important;
+    vertical-align: middle;
+}
+
+.toc-actions-container {
+    display: flex;
+    gap: 5px;
+    justify-content: center;
+    align-items: center;
+    min-height: 36px;
+    border: none !important;
+}
+
+.toc-editor-table tr.selected {
+    background-color: rgba(218, 67, 83, 0.15);
+}
+
+.toc-editor-table td input[type="checkbox"] {
+    width: auto;
+    cursor: pointer;
+}
+
+.toc-editor-table th input[type="checkbox"] {
+    cursor: pointer;
+}
+
+.toc-editor-table tr {
+    cursor: default;
+}
+
+.toc-editor-table tr.dragging {
+    opacity: 0.5;
+    background: var(--border-color);
+}
+
+.toc-editor-table tr.drag-over {
+    border-top: 2px solid var(--primary-color);
+}
+
+.toc-drag-handle {
+    cursor: grab;
+    padding: 0 5px;
+    color: var(--text-color);
+    opacity: 0.5;
+    user-select: none;
+}
+
+.toc-drag-handle:active {
+    cursor: grabbing;
 }
