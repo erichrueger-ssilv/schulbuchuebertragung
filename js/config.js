@@ -66,4 +66,5 @@ const settingsIds = [
     "camera-auto-vision-mode",
     "toc-pages",
     "toc-offset",
+    "auto-save-local",
 ];

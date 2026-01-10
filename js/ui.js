@@ -186,8 +186,73 @@ function requestPassword(message) {
 // --- EINSTELLUNGEN ---
 let quickProfiles = { Standard: {} };
 let currentProfileName = "Standard";
+let isSettingsLoading = false;
 const INTERNAL_STORAGE_KEY = "DokumentZuEBuch_Internal_AutoSave_SecureKey_v1";
 const LS_KEY_NAME = "ocr_settings_auto_enc";
+const IDB_NAME = "OCRSettingsDB";
+const IDB_STORE = "settings";
+const IDB_KEY = "latest";
+
+/**
+ * Robust IndexedDB helper for settings persistence (especially for Chrome file://)
+ */
+async function saveToIndexedDB(data) {
+    return new Promise((resolve) => {
+        try {
+            const request = indexedDB.open(IDB_NAME, 1);
+            request.onupgradeneeded = (e) => {
+                const db = e.target.result;
+                if (!db.objectStoreNames.contains(IDB_STORE)) {
+                    db.createObjectStore(IDB_STORE);
+                }
+            };
+            request.onsuccess = (e) => {
+                const db = e.target.result;
+                const tx = db.transaction(IDB_STORE, "readwrite");
+                const store = tx.objectStore(IDB_STORE);
+                store.put(data, IDB_KEY);
+                tx.oncomplete = () => {
+                    db.close();
+                    resolve(true);
+                };
+            };
+            request.onerror = () => resolve(false);
+        } catch (e) {
+            resolve(false);
+        }
+    });
+}
+
+/**
+ * Loads data from IndexedDB
+ */
+async function loadFromIndexedDB() {
+    return new Promise((resolve) => {
+        try {
+            const request = indexedDB.open(IDB_NAME, 1);
+            request.onupgradeneeded = (e) => {
+                const db = e.target.result;
+                if (!db.objectStoreNames.contains(IDB_STORE)) {
+                    db.createObjectStore(IDB_STORE);
+                }
+            };
+            request.onsuccess = (e) => {
+                const db = e.target.result;
+                const tx = db.transaction(IDB_STORE, "readonly");
+                const store = tx.objectStore(IDB_STORE);
+                const getRequest = store.get(IDB_KEY);
+                getRequest.onsuccess = () => {
+                    resolve(getRequest.result);
+                };
+                getRequest.onerror = () => resolve(null);
+                tx.oncomplete = () => db.close();
+            };
+            request.onerror = () => resolve(null);
+        } catch (e) {
+            resolve(null);
+        }
+    });
+}
 
 function gatherSettings() {
     const settings = {};
@@ -252,7 +317,10 @@ function updateProfileSelect() {
 
 async function saveToLocalStorage() {
     const autoSaveLocalCheckbox = document.getElementById("auto-save-local");
-    if (!autoSaveLocalCheckbox.checked) return;
+    // We only skip saving if the checkbox exists and is unchecked.
+    // If it doesn't exist yet (init phase), we might still want to load/save later.
+    if (autoSaveLocalCheckbox && !autoSaveLocalCheckbox.checked) return;
+
     if (quickProfiles[currentProfileName])
         quickProfiles[currentProfileName] = gatherSettings();
 
@@ -266,24 +334,40 @@ async function saveToLocalStorage() {
         _quickProfiles: quickProfiles,
         _activeProfile: currentProfileName,
         _theme: currentTheme,
+        _globalToc: globalToc,
     };
     try {
         const encryptedObj = await encryptData(
             JSON.stringify(dataToSave),
             INTERNAL_STORAGE_KEY,
         );
-        localStorage.setItem(
-            LS_KEY_NAME,
-            JSON.stringify(encryptedObj),
-        );
+        const encryptedStr = JSON.stringify(encryptedObj);
+
+        // Storage 1: LocalStorage (Standard)
+        localStorage.setItem(LS_KEY_NAME, encryptedStr);
+
+        // Storage 2: IndexedDB (Chrome file:// fallback)
+        await saveToIndexedDB(encryptedStr);
+
     } catch (e) {
         console.error("Auto-Save Error:", e);
     }
 }
 
 async function loadFromLocalStorage() {
-    const encryptedDataStr = localStorage.getItem(LS_KEY_NAME);
+    let encryptedDataStr = localStorage.getItem(LS_KEY_NAME);
     const autoSaveLocalCheckbox = document.getElementById("auto-save-local");
+
+    // Check fallback if LocalStorage is empty (common Chrome file:// issue)
+    if (!encryptedDataStr) {
+        const idbData = await loadFromIndexedDB();
+        if (idbData) {
+            encryptedDataStr = idbData;
+            logMessage("Information: Wiederherstellung aus IndexedDB (LocalStorage war leer).");
+        }
+    }
+
+    // Default fallback
     quickProfiles["Standard"] = gatherSettings();
 
     try {
@@ -294,6 +378,7 @@ async function loadFromLocalStorage() {
                 INTERNAL_STORAGE_KEY,
             );
             const settings = JSON.parse(decryptedString);
+
             if (settings._quickProfiles)
                 quickProfiles = settings._quickProfiles;
             if (
@@ -304,33 +389,45 @@ async function loadFromLocalStorage() {
 
             if (settings._theme) {
                 if (settings._theme === "light") {
-                    document.documentElement.classList.add(
-                        "light-theme",
-                    );
+                    document.documentElement.classList.add("light-theme");
                     updateThemeIcon(true);
                 } else {
-                    document.documentElement.classList.remove(
-                        "light-theme",
-                    );
+                    document.documentElement.classList.remove("light-theme");
                     updateThemeIcon(false);
                 }
             }
 
+            if (settings._globalToc) {
+                globalToc = settings._globalToc;
+                renderTocEditorBody();
+                logMessage(`Inhaltsverzeichnis mit ${globalToc.length} Einträgen wiederhergestellt.`);
+            }
+
             updateProfileSelect();
-            applySettings(settings);
+
+            isSettingsLoading = true;
+            try {
+                applySettings(settings);
+            } finally {
+                isSettingsLoading = false;
+            }
+
+            if (settings["api-key"]) {
+                logMessage("API-Schlüssel erfolgreich geladen.");
+            } else {
+                logMessage("Hinweis: Kein API-Schlüssel in den gespeicherten Einstellungen gefunden.");
+            }
+
             autoSaveLocalCheckbox.checked = true;
-            autoSaveLocalCheckbox.setAttribute(
-                "aria-checked",
-                true,
-            );
-            logMessage(
-                "Einstellungen und Profile automatisch geladen.",
-            );
+            autoSaveLocalCheckbox.setAttribute("aria-checked", true);
+            logMessage("Einstellungen und Profile automatisch geladen.");
         } else {
             updateProfileSelect();
+            logMessage("Keine gespeicherten Einstellungen gefunden.");
         }
     } catch (e) {
         console.error("Auto-Load Error:", e);
+        logMessage("Fehler beim Laden der Einstellungen.");
         updateProfileSelect();
     }
 
@@ -418,7 +515,12 @@ function loadSettingsFromFile(event) {
             if (settings._activeProfile)
                 currentProfileName = settings._activeProfile;
             updateProfileSelect();
-            applySettings(settings);
+            isSettingsLoading = true;
+            try {
+                applySettings(settings);
+            } finally {
+                isSettingsLoading = false;
+            }
             logMessage("Einstellungen geladen.");
             saveToLocalStorage();
         } catch (err) {
@@ -445,6 +547,7 @@ function initSettingsListeners() {
     const numberingOptions = document.getElementById("numbering-options");
 
     autoSaveLocalCheckbox.addEventListener("change", () => {
+        if (isSettingsLoading) return;
         if (autoSaveLocalCheckbox.checked) saveToLocalStorage();
         else localStorage.removeItem(LS_KEY_NAME);
     });
@@ -452,6 +555,12 @@ function initSettingsListeners() {
         const el = document.getElementById(id);
         if (el)
             el.addEventListener("change", () => {
+                if (isSettingsLoading) return;
+                // DO NOT trigger auto-save for model-name or base-url
+                // because they might be updated programmatically during load/init,
+                // causing a race condition or overwriting healthy settings with empty ones.
+                if (id === "model-name" || id === "base-url") return;
+
                 if (quickProfiles[currentProfileName])
                     quickProfiles[currentProfileName] =
                         gatherSettings();
@@ -469,7 +578,12 @@ function initSettingsListeners() {
         const selectedName = quickSettingsSelect.value;
         if (quickProfiles[selectedName]) {
             currentProfileName = selectedName;
-            applySettings(quickProfiles[selectedName]);
+            isSettingsLoading = true;
+            try {
+                applySettings(quickProfiles[selectedName]);
+            } finally {
+                isSettingsLoading = false;
+            }
             logMessage(`Profil "${selectedName}" geladen.`);
         }
     });

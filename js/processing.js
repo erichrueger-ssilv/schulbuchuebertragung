@@ -48,6 +48,7 @@ async function startProcessing() {
         lastProcessedIndex = -1;
         // Inhaltsverzeichnis Status zurücksetzen
         if (globalToc) globalToc.forEach(h => h.processed = false);
+        lastTocLevel = 0;
     }
 
     const logEl = document.getElementById("log-area");
@@ -260,8 +261,15 @@ async function processPage(
 
     // --- ToC Kontext hinzufügen ---
     let extraPrompt = "";
+    const currentOffset = parseInt(document.getElementById("toc-offset").value) || 0;
+
     if (globalToc && globalToc.length > 0) {
-        const pageHeadings = globalToc.filter(h => h.seite === pageNum && !h.processed);
+        // Use the same offset logic as in the post-processing phase
+        const pageHeadings = globalToc.filter(h => {
+            const expectedPdfPage = (parseInt(h.buchseite) || 0) + currentOffset;
+            return expectedPdfPage === pageNum && !h.processed;
+        });
+
         if (pageHeadings.length > 0) {
             logMessage(`ToC-Kontext für Seite ${pageNum}: ${pageHeadings.map(h => h.titel).join(", ")}.`);
             extraPrompt = "\n\nNOTE ON STRUCTURE (IF APPLICABLE):\n" +
@@ -295,41 +303,69 @@ async function processPage(
 
     let formattedMarkdown = markdown;
 
-    // --- Automatische Überschriften-Reparatur ---
+    // --- Automatische Überschriften-Reparatur & Hierarchie-Anpassung ---
     if (!isManualRun && globalToc && globalToc.length > 0) {
-        globalToc.forEach(h => {
-            if (h.processed) return;
+        // currentOffset already defined above for post-processing
+        const lines = formattedMarkdown.split('\n');
+        let activeLevel = lastTocLevel; // Track the current effective hierarchy level on this page
+        let vlmBaseLevel = 0; // Track the VLM's own hierarchy level for the last ToC match
 
-            const escapedTitle = h.titel.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-            const headerPrefix = "#".repeat(Math.max(1, h.ebene));
-            const correctHeader = `${headerPrefix} ${h.titel}`;
+        const processedLines = lines.map(line => {
+            let trimmedLine = line.trim();
+            if (!trimmedLine) return line;
 
-            const exactHeaderRegex = new RegExp(`(^|\\n)${headerPrefix}\\s*${escapedTitle}\\s*(\\n|$)`, 'gi');
-            if (exactHeaderRegex.test(formattedMarkdown)) {
-                h.processed = true;
-                logMessage(`ToC-Check: Überschrift "${h.titel}" wurde korrekt erkannt.`);
-                return;
-            }
+            // 1. Check if line matches ANY ToC entry for the CURRENT page
+            for (const h of globalToc) {
+                if (h.processed) continue;
+                const expectedPdfPage = (parseInt(h.buchseite) || 0) + currentOffset;
+                if (expectedPdfPage !== pageNum) continue;
 
-            if (h.seite === pageNum) {
-                const boldRegex = new RegExp(`\\*\\*\\s*${escapedTitle}\\s*\\*\\*`, 'gi');
-                if (boldRegex.test(formattedMarkdown)) {
-                    formattedMarkdown = formattedMarkdown.replace(boldRegex, correctHeader);
+                const escapedTitle = h.titel.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+                const patterns = [
+                    new RegExp(`^#+\\s*${escapedTitle}\\s*$`, 'i'),
+                    new RegExp(`^\\*\\*\\s*${escapedTitle}\\s*\\*\\*$`, 'i'),
+                    new RegExp(`^${escapedTitle}$`, 'i')
+                ];
+
+                if (patterns.some(p => p.test(trimmedLine))) {
                     h.processed = true;
-                    logMessage(`Fix: Überschrift "${h.titel}" von Fett zu H${h.ebene} korrigiert.`);
-                    return;
+                    const hMatch = line.match(/^(#+)\s*/);
+                    vlmBaseLevel = hMatch ? hMatch[1].length : h.ebene;
+                    lastTocLevel = h.ebene;
+                    activeLevel = h.ebene;
+                    logMessage(`ToC-Match: "${h.titel}" -> H${h.ebene} (VLM used H${vlmBaseLevel})`);
+                    // Reconstruct the line as a proper heading
+                    return "#".repeat(h.ebene) + " " + h.titel;
                 }
             }
 
-            if (h.seite === pageNum) {
-                const plainLineRegex = new RegExp(`(^|\\n)(?!#)\\s*${escapedTitle}\\s*(\\n|$)`, 'gi');
-                if (plainLineRegex.test(formattedMarkdown)) {
-                    formattedMarkdown = formattedMarkdown.replace(plainLineRegex, `$1${correctHeader}$2`);
-                    h.processed = true;
-                    logMessage(`Fix: Text "${h.titel}" zu H${h.ebene} hochgestuft.`);
+            // 2. If not a ToC match, check if it's already a heading and needs shifting
+            const headingMatch = line.match(/^(#+)\s*(.*)$/);
+            if (headingMatch && lastTocLevel > 0) {
+                const origLevel = headingMatch[1].length;
+                const title = headingMatch[2];
+                // Shift level by lastTocLevel context.
+                // If we have a base level on this page, use the relative difference.
+                // Otherwise shift by the context level (assuming VLM starts at H1).
+                let newLevel;
+                if (vlmBaseLevel > 0) {
+                    newLevel = lastTocLevel + (origLevel - vlmBaseLevel);
+                } else {
+                    newLevel = origLevel + lastTocLevel;
                 }
+
+                // Prevent gaps greater than 1 level, but still allow going up
+                if (activeLevel > 0 && newLevel > activeLevel + 1) {
+                    newLevel = activeLevel + 1;
+                }
+                newLevel = Math.max(1, Math.min(6, newLevel));
+                activeLevel = newLevel;
+                return "#".repeat(newLevel) + " " + title;
             }
+
+            return line;
         });
+        formattedMarkdown = processedLines.join('\n');
     }
 
     if (!isManualRun && options.enableNumbering) {
@@ -337,7 +373,7 @@ async function processPage(
             pageNum >= options.startPdfPage
                 ? `((${options.currentPageNumber}))\n\n`
                 : `(( ))\n\n`;
-        formattedMarkdown = prefix + markdown;
+        formattedMarkdown = prefix + formattedMarkdown;
         if (pageNum >= options.startPdfPage)
             options.currentPageNumber++;
     }
