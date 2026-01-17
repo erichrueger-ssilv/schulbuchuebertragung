@@ -76,22 +76,30 @@ body {
 }
 
 .main-content {
-    display: grid;
-    grid-template-rows: 1fr auto auto;
+    display: flex;
+    flex-direction: column;
     gap: 10px;
     height: 100%;
+    min-height: 0;
     box-sizing: border-box;
     overflow: hidden;
 }
 
 .preview-area {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
+    display: flex;
+    flex-direction: row;
     gap: 15px;
-    height: 100%;
-    min-height: 0;
-    /* Allow shrinking if needed */
     flex: 1;
+    min-height: 0;
+}
+
+.preview-area>div,
+.preview-area>.output-wrapper {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    height: 100%;
 }
 
 /* --- Steuerungs-Panel (linke Spalte) --- */
@@ -660,7 +668,23 @@ input:focus-visible+.slider {
     box-sizing: border-box;
     display: flex;
     flex-direction: column;
-    min-height: 400px;
+    flex: 1;
+    /* Take remaining space */
+    min-height: 0;
+    position: relative;
+}
+
+.output-wrapper {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-height: 0;
+}
+
+#output-preview-panel {
+    flex: 1;
+    border-top-left-radius: 0;
+    margin-top: 0;
 }
 
 .preview-panel-header {
@@ -676,29 +700,58 @@ input:focus-visible+.slider {
 /* --- TAB CONTROLLS --- */
 .tab-controls {
     display: flex;
-    gap: 5px;
+    gap: 4px;
+    margin-bottom: -1px;
+    /* Overlap the border of the panel below */
+    z-index: 10;
+    padding-left: 0;
 }
 
 .tab-btn {
-    background-color: var(--secondary-color);
+    background-color: var(--input-bg);
     color: var(--text-color);
     border: 1px solid var(--border-color);
-    padding: 6px 12px;
-    border-radius: 4px;
+    border-bottom: none;
+    /* No bottom border for tabs */
+    padding: 8px 24px;
+    border-radius: 8px 8px 0 0;
     cursor: pointer;
-    font-size: 0.9em;
+    font-size: 0.95em;
     font-weight: 600;
-    transition: background-color 0.2s, color 0.2s;
+    transition: all 0.2s ease;
+    opacity: 0.6;
+    position: relative;
+    box-shadow: inset 0 -5px 10px rgba(0, 0, 0, 0.1);
 }
 
 .tab-btn:hover:not(.active) {
     background-color: var(--border-color);
+    opacity: 0.9;
+    transform: translateY(-1px);
 }
 
 .tab-btn.active {
-    background-color: var(--primary-color);
-    color: white;
-    border-color: var(--primary-color);
+    background-color: var(--secondary-color);
+    /* Matches panel bg */
+    color: var(--primary-color);
+    border: 1px solid var(--border-color);
+    border-bottom: 2px solid var(--secondary-color);
+    /* Effectively hide the panel's top border */
+    opacity: 1;
+    z-index: 11;
+    box-shadow: none;
+    transform: translateY(0);
+}
+
+/* Ensure the panel border doesn't show through */
+.tab-btn.active::after {
+    content: '';
+    position: absolute;
+    bottom: -2px;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background-color: var(--secondary-color);
 }
 
 .preview-panel-header h3 {
@@ -772,26 +825,35 @@ input:focus-visible+.slider {
 
 #image-preview {
     max-width: 100%;
-    height: auto;
-    border: 1px solid var(--border-color);
-    background-color: #fff;
+    max-height: 100%;
+    object-fit: contain;
+    /* Better for preview */
     display: block;
+    margin: 0 auto;
+}
+
+#input-preview-panel {
+    overflow-y: auto;
+    /* Allow image to scroll if it exceeds panel height */
 }
 
 #raw-preview {
     width: 100%;
-    height: 100%;
+    flex: 1;
+    min-height: 0;
     white-space: pre-wrap;
     word-wrap: break-word;
     font-family: "Courier New", Courier, monospace;
-    font-size: 0.9em;
+    font-size: 0.95em;
     line-height: 1.5;
     color: var(--text-color);
     background-color: var(--input-bg);
     border: 1px solid var(--border-color);
-    padding: 8px;
+    padding: 10px;
     box-sizing: border-box;
     resize: none;
+    overflow-y: auto !important;
+    /* Force scroll */
 }
 
 #rendered-preview {
@@ -799,8 +861,10 @@ input:focus-visible+.slider {
     background-color: var(--preview-bg);
     padding: 10px;
     border-radius: 4px;
-    height: 100%;
-    overflow-y: auto;
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto !important;
+    /* Force scrollbar */
 }
 
 #rendered-preview table,
@@ -841,12 +905,16 @@ input:focus-visible+.slider {
     border: 1px solid var(--border-color);
     border-radius: 8px;
     padding: 10px;
-    height: 150px;
-    overflow-y: scroll;
+    height: 180px;
+    /* Slightly taller for visibility */
+    flex-shrink: 0;
+    overflow-y: auto;
     font-family: "Courier New", Courier, monospace;
-    font-size: 1em;
+    font-size: 0.95em;
     white-space: pre-wrap;
     box-sizing: border-box;
+    z-index: 5;
+    /* Ensure it stays above any weird overlaps */
 }
 
 #pdf-canvas {
@@ -993,7 +1061,8 @@ input:focus-visible+.slider {
     }
 
     .container {
-        grid-template-columns: 1fr;
+        display: flex;
+        flex-direction: column;
         height: auto;
         padding: 5px;
     }
@@ -1003,17 +1072,30 @@ input:focus-visible+.slider {
         max-height: none;
     }
 
-    .preview-area {
-        grid-template-columns: 1fr;
+    .main-content {
         height: auto;
+        overflow: visible;
+    }
+
+    .preview-area {
+        flex-direction: column;
+        height: auto;
+        gap: 15px;
     }
 
     .preview-panel {
-        min-height: 300px;
+        min-height: 400px;
+        height: auto;
+    }
+
+    .output-wrapper {
+        min-height: 500px;
+        height: auto;
     }
 
     .log-area {
-        height: 200px;
+        height: 250px;
+        margin-top: 10px;
     }
 }
 

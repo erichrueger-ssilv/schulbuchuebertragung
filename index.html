@@ -446,27 +446,30 @@ Beschreibung: …  / Bildtext: …<br/>
                 </div>
 
                 <!-- Ausgabe-Vorschau -->
-                <div class="preview-panel" id="output-preview-panel">
-                    <div class="preview-panel-header">
-                        <div class="tab-controls">
-                            <button id="tab-current" class="tab-btn active" title="Zuletzt erkannte Seite">Zuletzt
-                                erkannt</button>
-                            <button id="tab-total" class="tab-btn" title="Gesamter bisheriger Text">Gesamter
-                                Text</button>
-                        </div>
-                        <div class="preview-controls">
-                            <button id="toggle-raw-btn" class="active" aria-pressed="true"
-                                title="Zeige Rohdaten (JSON/Text)">Rohdaten</button>
-                            <button id="toggle-rendered-btn" aria-pressed="false"
-                                title="Zeige gerenderte Vorschau (HTML)">Vorschau</button>
-                            <button id="tts-btn" title="Vorlesen" aria-label="Text vorlesen lassen">🔊 Vorlesen</button>
-                            <button id="copy-result-btn" title="In Zwischenablage kopieren"
-                                aria-label="Ergebnis kopieren">📋 Kopieren</button>
-                        </div>
+                <div class="output-wrapper">
+                    <div class="tab-controls">
+                        <button id="tab-current" class="tab-btn active" title="Zuletzt erkannte Seite">Zuletzt
+                            erkannt</button>
+                        <button id="tab-total" class="tab-btn" title="Gesamter bisheriger Text">Gesamter
+                            Text</button>
                     </div>
-                    <textarea id="raw-preview" readonly spellcheck="false"
-                        placeholder="Erkannter Text erscheint hier..."></textarea>
-                    <div id="rendered-preview" style="display: none;"></div>
+                    <div class="preview-panel" id="output-preview-panel">
+                        <div class="preview-panel-header">
+                            <div class="preview-controls">
+                                <button id="toggle-raw-btn" class="active" aria-pressed="true"
+                                    title="Zeige Rohdaten (JSON/Text)">Rohdaten</button>
+                                <button id="toggle-rendered-btn" aria-pressed="false"
+                                    title="Zeige gerenderte Vorschau (HTML)">Vorschau</button>
+                                <button id="tts-btn" title="Vorlesen" aria-label="Text vorlesen lassen">🔊
+                                    Vorlesen</button>
+                                <button id="copy-result-btn" title="In Zwischenablage kopieren"
+                                    aria-label="Ergebnis kopieren">📋 Kopieren</button>
+                            </div>
+                        </div>
+                        <textarea id="raw-preview" readonly spellcheck="false"
+                            placeholder="Erkannter Text erscheint hier..."></textarea>
+                        <div id="rendered-preview" style="display: none;"></div>
+                    </div>
                 </div>
             </div>
 
