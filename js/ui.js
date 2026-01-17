@@ -970,3 +970,68 @@ function importTocFromMarkdown(file) {
     };
     reader.readAsText(file);
 }
+/**
+ * Generic confirmation modal
+ */
+function showConfirmModal(title, message) {
+    const confirmModal = document.getElementById("confirm-modal");
+    const confirmTitle = document.getElementById("confirm-title");
+    const confirmMessage = document.getElementById("confirm-message");
+    const confirmOkBtn = document.getElementById("confirm-ok");
+    const confirmCancelBtn = document.getElementById("confirm-cancel");
+
+    return new Promise((resolve) => {
+        confirmTitle.textContent = title;
+        confirmMessage.textContent = message;
+        confirmModal.style.display = "flex";
+
+        const handleOk = () => {
+            cleanup();
+            resolve(true);
+        };
+        const handleCancel = () => {
+            cleanup();
+            resolve(false);
+        };
+        const handleKeydown = (e) => {
+            if (e.key === "Enter") handleOk();
+            if (e.key === "Escape") handleCancel();
+        };
+        const cleanup = () => {
+            confirmOkBtn.removeEventListener("click", handleOk);
+            confirmCancelBtn.removeEventListener("click", handleCancel);
+            window.removeEventListener("keydown", handleKeydown);
+            confirmModal.style.display = "none";
+        };
+
+        confirmOkBtn.addEventListener("click", handleOk);
+        confirmCancelBtn.addEventListener("click", handleCancel);
+        window.addEventListener("keydown", handleKeydown);
+    });
+}
+
+/**
+ * Copies text to the clipboard.
+ */
+async function copyTextToClipboard(text) {
+    if (!text) return;
+    try {
+        await navigator.clipboard.writeText(text);
+        logMessage("Text in Zwischenablage kopiert.");
+    } catch (err) {
+        console.error("Fehler beim Kopieren in die Zwischenablage:", err);
+        // Fallback for older browsers or insecure contexts if needed
+        const textArea = document.createElement("textarea");
+        textArea.value = text;
+        document.body.appendChild(textArea);
+        textArea.select();
+        try {
+            document.execCommand('copy');
+            logMessage("Text in Zwischenablage kopiert (Fallback).");
+        } catch (copyErr) {
+            console.error("Fallback Kopieren fehlgeschlagen:", copyErr);
+            logMessage("Fehler: Kopieren in Zwischenablage fehlgeschlagen.");
+        }
+        document.body.removeChild(textArea);
+    }
+}

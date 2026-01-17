@@ -67,4 +67,6 @@ const settingsIds = [
     "toc-pages",
     "toc-offset",
     "auto-save-local",
+    "clipboard-behavior",
+    "auto-copy-result",
 ];

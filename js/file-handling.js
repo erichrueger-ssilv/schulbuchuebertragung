@@ -59,7 +59,9 @@ async function loadPreviewContent() {
         cameraQueue.forEach((b64) =>
             previewItems.push({ type: "base64", data: b64 }),
         );
-    } else if (fileInput.files.length > 0) {
+    }
+
+    if (fileInput.files.length > 0) {
         const files = Array.from(fileInput.files);
 
         for (const file of files) {

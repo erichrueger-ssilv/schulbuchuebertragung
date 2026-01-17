@@ -285,11 +285,17 @@ function initCameraListeners() {
 
     clearCameraBtn.addEventListener("click", () => {
         cameraQueue = [];
+        const fileInput = document.getElementById("file-input");
+        const fileNameDisplay = document.getElementById("file-name-display");
+        if (fileInput) {
+            fileInput.value = ""; // Clears the FileList
+            if (fileNameDisplay) fileNameDisplay.style.display = "none";
+        }
         previewItems = []; // Clear preview
         imagePreview.src = "";
         imagePreview.style.display = "none";
         imgNavControls.style.display = "none";
         updateCameraFileStatus();
-        logMessage("Foto-Stapel verworfen.");
+        logMessage("Stapel verworfen.");
     });
 }

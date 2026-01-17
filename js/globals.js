@@ -33,16 +33,28 @@ function updateCameraFileStatus() {
     const countSpan = document.getElementById("camera-file-count");
     const toggleProcessingBtn = document.getElementById("toggle-processing-btn");
 
+    const fileInput = document.getElementById("file-input");
+
     if (!statusDiv || !countSpan) return;
 
-    if (cameraQueue.length > 0) {
+    const cameraCount = cameraQueue.length;
+    const fileCount = fileInput && fileInput.files ? fileInput.files.length : 0;
+
+    if (cameraCount > 0 || fileCount > 0) {
         statusDiv.style.display = "flex";
-        countSpan.textContent = `${cameraQueue.length} Foto(s) aufgenommen`;
+        let statusText = "";
+        if (cameraCount > 0 && fileCount > 0) {
+            statusText = `${cameraCount} Foto(s) & ${fileCount} Datei(en)`;
+        } else if (cameraCount > 0) {
+            statusText = `${cameraCount} Foto(s) aufgenommen`;
+        } else {
+            statusText = `${fileCount} Datei(en) ausgewählt`;
+        }
+        countSpan.textContent = statusText;
         if (toggleProcessingBtn) toggleProcessingBtn.disabled = false;
     } else {
         statusDiv.style.display = "none";
         // Only disable if no files are selected either
-        const fileInput = document.getElementById("file-input");
         if (toggleProcessingBtn && (!fileInput || fileInput.files.length === 0)) {
             toggleProcessingBtn.disabled = true;
         }

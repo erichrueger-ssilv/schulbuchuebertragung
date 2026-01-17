@@ -87,7 +87,6 @@ function initApp() {
     // File Input Change
     fileInput.addEventListener("change", () => {
         if (fileInput.files.length > 0) {
-            cameraQueue = [];
             updateCameraFileStatus();
 
             // Display Filename
@@ -185,6 +184,37 @@ document.body.addEventListener("dragleave", (e) => {
     }
 });
 
+// --- HELPER: ADD FILES TO STACK ---
+function addFilesToStack(newFiles) {
+    const fileInput = document.getElementById("file-input");
+    if (!fileInput) return;
+
+    const dt = new DataTransfer();
+
+    // Add existing files
+    if (fileInput.files.length > 0) {
+        for (let i = 0; i < fileInput.files.length; i++) {
+            dt.items.add(fileInput.files[i]);
+        }
+    }
+
+    // Add new files (filtered)
+    for (let i = 0; i < newFiles.length; i++) {
+        const file = newFiles[i];
+        const isSupported =
+            file.type === "application/pdf" ||
+            file.type.startsWith("image/") ||
+            file.name.toLowerCase().endsWith(".pdf");
+        if (isSupported) {
+            dt.items.add(file);
+        }
+    }
+
+    fileInput.files = dt.files;
+    // Trigger the existing change listener
+    fileInput.dispatchEvent(new Event("change"));
+}
+
 document.body.addEventListener("drop", (e) => {
     e.preventDefault();
     e.stopPropagation();
@@ -192,15 +222,76 @@ document.body.addEventListener("drop", (e) => {
 
     const files = e.dataTransfer.files;
     if (files && files.length > 0) {
-        const fileInput = document.getElementById("file-input");
-        if (fileInput) {
-            const dt = new DataTransfer();
-            for (let i = 0; i < files.length; i++) {
-                dt.items.add(files[i]);
-            }
-            fileInput.files = dt.files;
-            // Trigger the existing change listener
-            fileInput.dispatchEvent(new Event("change"));
+        addFilesToStack(files);
+    }
+});
+
+// --- GLOBAL CLIPBOARD PASTE ---
+window.addEventListener("paste", async (e) => {
+    // Only handle if we're not in an input field (except manual-prompt)
+    const activeEl = document.activeElement;
+    const isInput = ["INPUT", "TEXTAREA"].includes(activeEl.tagName);
+    const isManualPrompt = activeEl.id === "manual-prompt" || activeEl.id === "vision-user-input";
+
+    if (isInput && !isManualPrompt) {
+        return;
+    }
+
+    const items = (e.clipboardData || e.originalEvent.clipboardData).items;
+    const files = [];
+    for (let i = 0; i < items.length; i++) {
+        if (items[i].kind === "file") {
+            const file = items[i].getAsFile();
+            if (file) files.push(file);
         }
+    }
+
+    if (files.length === 0) return;
+
+    // Check behavior setting
+    const clipboardBehavior = document.getElementById("clipboard-behavior").value;
+    if (clipboardBehavior === "ignore") return;
+
+    if (isProcessing) {
+        logMessage("Hinweis: Inhalts-Paste während laufender Verarbeitung ignoriert.");
+        return;
+    }
+
+    if (clipboardBehavior === "ask") {
+        const confirmed = await showConfirmModal(
+            "Inhalt einfügen?",
+            `${files.length} Element(e) in der Zwischenablage erkannt. Zum Stapel hinzufügen?`
+        );
+        if (!confirmed) return;
+    }
+
+    logMessage(`${files.length} Element(e) aus Zwischenablage hinzugefügt.`);
+    addFilesToStack(files);
+
+    if (clipboardBehavior === "process") {
+        setTimeout(() => {
+            const toggleProcessingBtn = document.getElementById("toggle-processing-btn");
+            if (toggleProcessingBtn && !toggleProcessingBtn.disabled && !isProcessing) {
+                toggleProcessingBtn.click();
+            }
+        }, 500);
+    }
+});
+
+// --- COPY RESULT ACTIONS ---
+const copyResultBtn = document.getElementById("copy-result-btn");
+const rawPreview = document.getElementById("raw-preview");
+
+if (copyResultBtn) {
+    copyResultBtn.addEventListener("click", () => {
+        copyTextToClipboard(rawPreview.value);
+    });
+}
+
+// Keyboard Shortcut: Cmd/Ctrl + Shift + C
+window.addEventListener("keydown", (e) => {
+    if ((e.metaKey || e.ctrlKey) && e.shiftKey && e.key.toLowerCase() === "c") {
+        e.preventDefault();
+        copyTextToClipboard(rawPreview.value);
     }
 });

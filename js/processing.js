@@ -96,46 +96,50 @@ async function startProcessing() {
         });
         totalPagesToProcess = 1;
         manualPromptInput.value = "";
-    } else if (cameraQueue.length > 0) {
-        cameraQueue.forEach((b64) =>
-            processingQueue.push({ type: "camera", data: b64 }),
-        );
-        totalPagesToProcess = processingQueue.length;
     } else {
-        const files = Array.from(fileInput.files);
-        for (const file of files) {
-            if (file.type === "application/pdf") {
-                try {
-                    const pdfData = await file.arrayBuffer();
-                    const pdfDoc = await pdfjsLib.getDocument({
-                        data: pdfData,
-                    }).promise;
-                    const pRange =
-                        pageRange.length > 0
-                            ? pageRange.filter(
-                                (p) =>
-                                    p > 0 &&
-                                    p <= pdfDoc.numPages,
-                            )
-                            : Array.from(
-                                { length: pdfDoc.numPages },
-                                (_, i) => i + 1,
-                            );
-                    for (const pageNum of pRange) {
-                        processingQueue.push({
-                            type: "pdf",
-                            doc: pdfDoc,
-                            page: pageNum,
-                        });
+        // Build a unified queue from ALL sources
+        if (cameraQueue.length > 0) {
+            cameraQueue.forEach((b64) =>
+                processingQueue.push({ type: "camera", data: b64 }),
+            );
+        }
+
+        if (fileInput.files.length > 0) {
+            const files = Array.from(fileInput.files);
+            for (const file of files) {
+                if (file.type === "application/pdf") {
+                    try {
+                        const pdfData = await file.arrayBuffer();
+                        const pdfDoc = await pdfjsLib.getDocument({
+                            data: pdfData,
+                        }).promise;
+                        const pRange =
+                            pageRange.length > 0
+                                ? pageRange.filter(
+                                    (p) =>
+                                        p > 0 &&
+                                        p <= pdfDoc.numPages,
+                                )
+                                : Array.from(
+                                    { length: pdfDoc.numPages },
+                                    (_, i) => i + 1,
+                                );
+                        for (const pageNum of pRange) {
+                            processingQueue.push({
+                                type: "pdf",
+                                doc: pdfDoc,
+                                page: pageNum,
+                            });
+                        }
+                    } catch (e) {
+                        logMessage("Fehler PDF: " + e.message);
                     }
-                } catch (e) {
-                    logMessage("Fehler PDF: " + e.message);
+                } else if (file.type.startsWith("image/")) {
+                    processingQueue.push({
+                        type: "image",
+                        file: file,
+                    });
                 }
-            } else if (file.type.startsWith("image/")) {
-                processingQueue.push({
-                    type: "image",
-                    file: file,
-                });
             }
         }
         totalPagesToProcess = processingQueue.length;
@@ -394,7 +398,13 @@ async function processPage(
         updateImagePreview(base64Image);
     }
 
-    updateTextPreview(formattedMarkdown);
+    // Auto-copy to clipboard if enabled
+    const autoCopyResult = document.getElementById("auto-copy-result");
+    if (autoCopyResult && autoCopyResult.checked) {
+        copyTextToClipboard(formattedMarkdown);
+    }
+
+    rawPreview.value = allMarkdownResults.join("\n\n");
     downloadMdBtn.disabled = false;
     downloadDocxBtn.disabled = false;
     logMessage(
