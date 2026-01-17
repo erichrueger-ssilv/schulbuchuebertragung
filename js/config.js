@@ -69,4 +69,5 @@ const settingsIds = [
     "auto-save-local",
     "clipboard-behavior",
     "auto-copy-result",
+    "thinking-level",
 ];

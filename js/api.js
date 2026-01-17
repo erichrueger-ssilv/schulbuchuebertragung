@@ -153,6 +153,7 @@ async function sendToLLM(base64Image, retries, promptOverride) {
     const topPInput = document.getElementById("top-p");
     const topKInput = document.getElementById("top-k");
     const delayInput = document.getElementById("delay");
+    const thinkingLevelSelect = document.getElementById("thinking-level");
 
     const selectedPipeline = pipelineSelect.value;
     const baseUrl = baseUrlInput.value;
@@ -167,6 +168,7 @@ async function sendToLLM(base64Image, retries, promptOverride) {
     const topP = parseFloat(topPInput.value);
     const topK = parseInt(topKInput.value, 10);
     const delay = parseInt(delayInput.value, 10);
+    const thinkingLevel = thinkingLevelSelect ? thinkingLevelSelect.value : "auto";
 
     if (!model) return "[FEHLER: KEIN MODELL]";
 
@@ -190,6 +192,9 @@ async function sendToLLM(base64Image, retries, promptOverride) {
                 top_k: topK,
             },
         };
+        if (thinkingLevel !== "auto") {
+            payload.options.think = thinkingLevel;
+        }
     } else {
         // Covers 'openai' and 'openai-openwebui'
         payload = {
@@ -213,6 +218,9 @@ async function sendToLLM(base64Image, retries, promptOverride) {
         // top_k is not standard in OpenAI API, but some providers might support it.
         if (topK > 0) {
             payload.top_k = topK;
+        }
+        if (thinkingLevel !== "auto") {
+            payload.reasoning_effort = thinkingLevel;
         }
     }
 
