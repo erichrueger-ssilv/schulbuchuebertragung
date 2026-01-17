@@ -16,6 +16,7 @@ let wasAutoProcessed = false;
 let totalStartTime = 0;
 let globalToc = [];
 let lastTocLevel = 0;
+let activeResultTab = 'current'; // 'current' or 'total'
 
 // DOM Elements often used globally or across modules
 // Note: Some might be null if accessed before DOM load, but usually accessed inside functions.

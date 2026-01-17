@@ -49,6 +49,10 @@ async function startProcessing() {
         // Inhaltsverzeichnis Status zurücksetzen
         if (globalToc) globalToc.forEach(h => h.processed = false);
         lastTocLevel = 0;
+        activeResultTab = 'current';
+        document.getElementById("tab-current").classList.add("active");
+        document.getElementById("tab-total").classList.remove("active");
+        refreshResultView();
     }
 
     const logEl = document.getElementById("log-area");
@@ -398,13 +402,13 @@ async function processPage(
         updateImagePreview(base64Image);
     }
 
+    refreshResultView();
+
     // Auto-copy to clipboard if enabled
     const autoCopyResult = document.getElementById("auto-copy-result");
     if (autoCopyResult && autoCopyResult.checked) {
-        copyTextToClipboard(formattedMarkdown);
+        copyTextToClipboard(getActiveTabMarkdown());
     }
-
-    rawPreview.value = allMarkdownResults.join("\n\n");
     downloadMdBtn.disabled = false;
     downloadDocxBtn.disabled = false;
     logMessage(

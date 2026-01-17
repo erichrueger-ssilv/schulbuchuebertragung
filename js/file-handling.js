@@ -281,6 +281,33 @@ function getCleanedMarkdown(markdown) {
     return cleaned;
 }
 
+/**
+ * Returns the markdown for the currently active tab.
+ */
+function getActiveTabMarkdown() {
+    if (activeResultTab === 'current') {
+        return allMarkdownResults[allMarkdownResults.length - 1] || "";
+    } else {
+        return allMarkdownResults.join("\n\n");
+    }
+}
+
+/**
+ * Refreshes the result area display based on current tab and mode.
+ */
+function refreshResultView() {
+    const markdown = getActiveTabMarkdown();
+    const toggleRenderedBtn = document.getElementById("toggle-rendered-btn");
+    const isRendered = toggleRenderedBtn && toggleRenderedBtn.classList.contains("active");
+
+    if (isRendered) {
+        updateTextPreview(markdown);
+    } else {
+        const rawPreview = document.getElementById("raw-preview");
+        if (rawPreview) rawPreview.value = markdown;
+    }
+}
+
 function updateTextPreview(markdown) {
     const docxOptTables = document.getElementById("docx-opt-tables");
     const rawPreview = document.getElementById("raw-preview");
@@ -327,7 +354,8 @@ function setPreviewMode(mode) {
     toggleRawBtn.setAttribute("aria-pressed", isRaw);
     toggleRenderedBtn.classList.toggle("active", !isRaw);
     toggleRenderedBtn.setAttribute("aria-pressed", !isRaw);
-    if (!isRaw) updateTextPreview(rawPreview.value);
+
+    refreshResultView();
 }
 
 function downloadMarkdown(isIntermediate) {

@@ -673,6 +673,34 @@ input:focus-visible+.slider {
     min-height: 35px;
 }
 
+/* --- TAB CONTROLLS --- */
+.tab-controls {
+    display: flex;
+    gap: 5px;
+}
+
+.tab-btn {
+    background-color: var(--secondary-color);
+    color: var(--text-color);
+    border: 1px solid var(--border-color);
+    padding: 6px 12px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.9em;
+    font-weight: 600;
+    transition: background-color 0.2s, color 0.2s;
+}
+
+.tab-btn:hover:not(.active) {
+    background-color: var(--border-color);
+}
+
+.tab-btn.active {
+    background-color: var(--primary-color);
+    color: white;
+    border-color: var(--primary-color);
+}
+
 .preview-panel-header h3 {
     margin: 0;
     font-size: 1em;

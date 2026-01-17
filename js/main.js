@@ -74,6 +74,20 @@ function initApp() {
         setPreviewMode("rendered"),
     );
 
+    document.getElementById("tab-current").addEventListener("click", () => {
+        activeResultTab = 'current';
+        document.getElementById("tab-current").classList.add("active");
+        document.getElementById("tab-total").classList.remove("active");
+        refreshResultView();
+    });
+
+    document.getElementById("tab-total").addEventListener("click", () => {
+        activeResultTab = 'total';
+        document.getElementById("tab-total").classList.add("active");
+        document.getElementById("tab-current").classList.remove("active");
+        refreshResultView();
+    });
+
     // DOCX Options listener
     docxOptions.forEach((opt) => {
         if (!opt) return;

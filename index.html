@@ -448,7 +448,12 @@ Beschreibung: …  / Bildtext: …<br/>
                 <!-- Ausgabe-Vorschau -->
                 <div class="preview-panel" id="output-preview-panel">
                     <div class="preview-panel-header">
-                        <h3>Ergebnis</h3>
+                        <div class="tab-controls">
+                            <button id="tab-current" class="tab-btn active" title="Zuletzt erkannte Seite">Zuletzt
+                                erkannt</button>
+                            <button id="tab-total" class="tab-btn" title="Gesamter bisheriger Text">Gesamter
+                                Text</button>
+                        </div>
                         <div class="preview-controls">
                             <button id="toggle-raw-btn" class="active" aria-pressed="true"
                                 title="Zeige Rohdaten (JSON/Text)">Rohdaten</button>
