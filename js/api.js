@@ -81,6 +81,7 @@ async function fetchModels() {
         logMessage(
             `${modelNames.length} Modell(e) erfolgreich geladen.`,
         );
+        return true;
     } catch (error) {
         logMessage(
             `Fehler beim Abrufen der Modelle: ${error.message}`,
@@ -88,6 +89,7 @@ async function fetchModels() {
         modelNameSelect.innerHTML =
             '<option value="" disabled selected>Abruf fehlgeschlagen</option>';
         populateModelSelect([]);
+        return false;
     } finally {
         fetchModelsBtn.disabled = false;
         fetchModelsBtn.textContent = "Modelle abrufen";

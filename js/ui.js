@@ -414,12 +414,16 @@ async function loadFromLocalStorage() {
 
             if (settings["api-key"]) {
                 logMessage("API-Schlüssel erfolgreich geladen.");
-                // Automatisch Modelle abrufen, wenn ein Key da ist
-                setTimeout(() => {
-                    if (typeof fetchModels === 'function') fetchModels();
+                // Automatisch Modelle abrufen im Hintergrund
+                setTimeout(async () => {
+                    if (typeof fetchModels === 'function') {
+                        const success = await fetchModels();
+                        checkModelAndFocus(!success);
+                    }
                 }, 500);
             } else {
                 logMessage("Hinweis: Kein API-Schlüssel in den gespeicherten Einstellungen gefunden.");
+                checkModelAndFocus(true);
             }
 
             autoSaveLocalCheckbox.checked = true;
@@ -428,26 +432,34 @@ async function loadFromLocalStorage() {
         } else {
             updateProfileSelect();
             logMessage("Keine gespeicherten Einstellungen gefunden.");
+            checkModelAndFocus(true);
         }
     } catch (e) {
         console.error("Auto-Load Error:", e);
         logMessage("Fehler beim Laden der Einstellungen.");
         updateProfileSelect();
+        checkModelAndFocus(true);
     }
-
-    checkModelAndFocus();
 }
 
-function checkModelAndFocus() {
+/**
+ * Ensures settings are shown if needed (e.g. key missing or fetch failed).
+ * @param {boolean} forceOpen - If true, force open the settings.
+ */
+function checkModelAndFocus(forceOpen = false) {
     const modelNameSelect = document.getElementById("model-name");
     const mainSettings = document.getElementById("main-settings");
     const apiSettingsDetails = document.getElementById("api-settings-details");
     const apiKeyInput = document.getElementById("api-key");
 
-    if (!modelNameSelect.value || modelNameSelect.value === "") {
+    const needsAttention = forceOpen || !modelNameSelect.value || modelNameSelect.value === "";
+
+    if (needsAttention) {
         mainSettings.open = true;
         apiSettingsDetails.open = true;
-        apiKeyInput.focus();
+        if (apiKeyInput && (!apiKeyInput.value || forceOpen)) {
+            apiKeyInput.focus();
+        }
     }
 }
 
