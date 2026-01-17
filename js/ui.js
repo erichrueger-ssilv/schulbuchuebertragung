@@ -414,6 +414,10 @@ async function loadFromLocalStorage() {
 
             if (settings["api-key"]) {
                 logMessage("API-Schlüssel erfolgreich geladen.");
+                // Automatisch Modelle abrufen, wenn ein Key da ist
+                setTimeout(() => {
+                    if (typeof fetchModels === 'function') fetchModels();
+                }, 500);
             } else {
                 logMessage("Hinweis: Kein API-Schlüssel in den gespeicherten Einstellungen gefunden.");
             }
