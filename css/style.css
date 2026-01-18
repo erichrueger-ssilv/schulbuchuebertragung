@@ -181,7 +181,8 @@ body {
     align-items: stretch;
 }
 
-#camera-btn {
+#camera-btn,
+#paste-btn {
     flex-shrink: 0;
     width: 50px;
     font-size: 1.5em;
@@ -198,7 +199,8 @@ body {
     cursor: pointer;
 }
 
-#camera-btn:hover {
+#camera-btn:hover,
+#paste-btn:hover {
     background-color: var(--primary-hover);
     border-color: var(--primary-hover);
     color: white;
@@ -377,6 +379,8 @@ summary:focus,
 
 input[type="file"] {
     color: transparent;
+    flex: 1;
+    min-width: 0;
 }
 
 input[type="file"]::file-selector-button {

@@ -146,6 +146,30 @@ function initApp() {
     initNavigationListeners();
     initTocEditor();
 
+    document.getElementById("paste-btn").addEventListener("click", async () => {
+        try {
+            const clipboardItems = await navigator.clipboard.read();
+            const files = [];
+            for (const item of clipboardItems) {
+                for (const type of item.types) {
+                    if (type.startsWith("image/") || type === "application/pdf") {
+                        const blob = await item.getType(type);
+                        const file = new File([blob], `clipboard-${Date.now()}.${type.split('/')[1]}`, { type });
+                        files.push(file);
+                    }
+                }
+            }
+            if (files.length > 0) {
+                handleClipboardFiles(files);
+            } else {
+                logMessage("Keine unterstützten Dateien (Bild/PDF) in der Zwischenablage gefunden.");
+            }
+        } catch (err) {
+            console.error("Paste failed:", err);
+            logMessage("Einfügen fehlgeschlagen. Bitte nutzen Sie Strg+V / Cmd+V.");
+        }
+    });
+
     updateApiSettings();
     numberingOptions.style.display = enableNumberingInput.checked
         ? "flex"
@@ -241,25 +265,8 @@ document.body.addEventListener("drop", (e) => {
 });
 
 // --- GLOBAL CLIPBOARD PASTE ---
-window.addEventListener("paste", async (e) => {
-    // Only handle if we're not in an input field (except manual-prompt)
-    const activeEl = document.activeElement;
-    const isInput = ["INPUT", "TEXTAREA"].includes(activeEl.tagName);
-    const isManualPrompt = activeEl.id === "manual-prompt" || activeEl.id === "vision-user-input";
-
-    if (isInput && !isManualPrompt) {
-        return;
-    }
-
-    const items = (e.clipboardData || e.originalEvent.clipboardData).items;
-    const files = [];
-    for (let i = 0; i < items.length; i++) {
-        if (items[i].kind === "file") {
-            const file = items[i].getAsFile();
-            if (file) files.push(file);
-        }
-    }
-
+// --- HANDLE CLIPBOARD FILES ---
+async function handleClipboardFiles(files) {
     if (files.length === 0) return;
 
     // Check behavior setting
@@ -289,6 +296,30 @@ window.addEventListener("paste", async (e) => {
                 toggleProcessingBtn.click();
             }
         }, 500);
+    }
+}
+
+window.addEventListener("paste", async (e) => {
+    // Only handle if we're not in an input field (except manual-prompt)
+    const activeEl = document.activeElement;
+    const isInput = ["INPUT", "TEXTAREA"].includes(activeEl.tagName);
+    const isManualPrompt = activeEl.id === "manual-prompt" || activeEl.id === "vision-user-input";
+
+    if (isInput && !isManualPrompt) {
+        return;
+    }
+
+    const items = (e.clipboardData || e.originalEvent.clipboardData).items;
+    const files = [];
+    for (let i = 0; i < items.length; i++) {
+        if (items[i].kind === "file") {
+            const file = items[i].getAsFile();
+            if (file) files.push(file);
+        }
+    }
+
+    if (files.length > 0) {
+        handleClipboardFiles(files);
     }
 });
 
