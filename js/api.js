@@ -197,9 +197,7 @@ async function sendToLLM(base64Image, retries, promptOverride) {
         if (thinkingLevel !== "auto") {
             payload.options.think = thinkingLevel;
         }
-        if (!enableThinking) {
-            payload.chat_template_kwargs = { "enable_thinking": false };
-        }
+        payload.chat_template_kwargs = { "enable_thinking": enableThinking };
     } else {
         // Covers 'openai' and 'openai-openwebui'
         payload = {
@@ -227,10 +225,11 @@ async function sendToLLM(base64Image, retries, promptOverride) {
         if (thinkingLevel !== "auto") {
             payload.reasoning_effort = thinkingLevel;
         }
-        if (!enableThinking) {
-            payload.chat_template_kwargs = { "enable_thinking": false };
-        }
+        payload.chat_template_kwargs = { "enable_thinking": enableThinking };
     }
+
+    // Debug-Log für UI, um prüfen zu können, was tatsächlich eingestellt ist
+    logMessage(`Sende Request (Modell: ${model}, Reasoning: ${enableThinking ? "An" : "Aus"})`);
 
     for (let attempt = 0; attempt <= retries; attempt++) {
         try {
