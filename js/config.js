@@ -70,4 +70,5 @@ const settingsIds = [
     "clipboard-behavior",
     "auto-copy-result",
     "thinking-level",
+    "enable-thinking",
 ];

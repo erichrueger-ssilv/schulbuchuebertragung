@@ -154,6 +154,7 @@ async function sendToLLM(base64Image, retries, promptOverride) {
     const topKInput = document.getElementById("top-k");
     const delayInput = document.getElementById("delay");
     const thinkingLevelSelect = document.getElementById("thinking-level");
+    const enableThinkingCheckbox = document.getElementById("enable-thinking");
 
     const selectedPipeline = pipelineSelect.value;
     const baseUrl = baseUrlInput.value;
@@ -169,6 +170,7 @@ async function sendToLLM(base64Image, retries, promptOverride) {
     const topK = parseInt(topKInput.value, 10);
     const delay = parseInt(delayInput.value, 10);
     const thinkingLevel = thinkingLevelSelect ? thinkingLevelSelect.value : "auto";
+    const enableThinking = enableThinkingCheckbox ? enableThinkingCheckbox.checked : true;
 
     if (!model) return "[FEHLER: KEIN MODELL]";
 
@@ -194,6 +196,9 @@ async function sendToLLM(base64Image, retries, promptOverride) {
         };
         if (thinkingLevel !== "auto") {
             payload.options.think = thinkingLevel;
+        }
+        if (!enableThinking) {
+            payload.chat_template_kwargs = { "enable_thinking": false };
         }
     } else {
         // Covers 'openai' and 'openai-openwebui'
@@ -221,6 +226,9 @@ async function sendToLLM(base64Image, retries, promptOverride) {
         }
         if (thinkingLevel !== "auto") {
             payload.reasoning_effort = thinkingLevel;
+        }
+        if (!enableThinking) {
+            payload.chat_template_kwargs = { "enable_thinking": false };
         }
     }
 
