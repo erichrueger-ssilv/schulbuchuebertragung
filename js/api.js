@@ -184,7 +184,7 @@ async function sendToLLM(base64Image, retries, promptOverride) {
     ) {
         payload = {
             model: model,
-            prompt: prompt,
+            prompt: finalPrompt,
             images: [base64Image.split(",")[1]],
             stream: false,
             options: {
@@ -206,7 +206,7 @@ async function sendToLLM(base64Image, retries, promptOverride) {
                 {
                     role: "user",
                     content: [
-                        { type: "text", text: prompt },
+                        { type: "text", text: finalPrompt },
                         {
                             type: "image_url",
                             image_url: { url: base64Image },
@@ -226,6 +226,13 @@ async function sendToLLM(base64Image, retries, promptOverride) {
             payload.reasoning_effort = thinkingLevel;
         }
         payload.chat_template_kwargs = { "enable_thinking": enableThinking };
+    }
+
+    // Wenn Thinking nicht aktiv ist, Prompt verdoppeln
+    let finalPrompt = prompt;
+    if (!enableThinking) {
+        finalPrompt = prompt + "\n\n" + prompt;
+        logMessage(`Prompt verdoppelt (Thinking deaktiviert)`);
     }
 
     // Debug-Log für UI, um prüfen zu können, was tatsächlich eingestellt ist
